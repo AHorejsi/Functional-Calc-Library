@@ -26,6 +26,7 @@ source-repository head
 library
   exposed-modules:
       BigNum
+      MathResult
   other-modules:
       Paths_calc_library
   autogen-modules:

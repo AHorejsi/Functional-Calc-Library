@@ -11,6 +11,8 @@ module BigNum (
     nmult,
     nnegate
 ) where
+    import qualified MathResult as MR
+
     data BigNum a = BigReal_ {
         _rreal :: a
     } | BigComplex_ {
@@ -24,7 +26,6 @@ module BigNum (
     }
 
     instance (Eq a) => Eq (BigNum a) where
-        (==) :: Eq a => BigNum a -> BigNum a -> Bool
         (==) (BigReal_ leftReal) (BigReal_ rightReal) = leftReal == rightReal
         (==) (BigComplex_ leftReal leftImag0) (BigComplex_ rightReal rightImag0) = leftReal == rightReal && leftImag0 == rightImag0
         (==) (BigQuaternion_ leftReal leftImag0 leftImag1 leftImag2) (BigQuaternion_ rightReal rightImag0 rightImag1 rightImag2) = leftReal == rightReal && leftImag0 == rightImag0 && leftImag1 == rightImag1 && leftImag2 == rightImag2
@@ -55,6 +56,26 @@ module BigNum (
     isQuaternion BigQuaternion_{} = True
     isQuaternion _ = False
 
+    nreal :: BigNum a -> a
+    nreal (BigReal_ realVal) = realVal
+    nreal (BigComplex_ realVal _) = realVal
+    nreal (BigQuaternion_ realVal _ _ _) = realVal
+
+    nimag0 :: (Num a) => BigNum a -> a
+    nimag0 BigReal_{} = 0
+    nimag0 (BigComplex_ _ imag0Val) = imag0Val
+    nimag0 (BigQuaternion_ _ imag0Val _ _) = imag0Val
+
+    nimag1 :: (Num a) => BigNum a -> a
+    nimag1 BigReal_{} = 0
+    nimag1 BigComplex_{} = 0
+    nimag1 (BigQuaternion_ _ _ imag1Val _) = imag1Val
+
+    nimag2 :: (Num a) => BigNum a -> a
+    nimag2 BigReal_{} = 0
+    nimag2 BigComplex_{} = 0
+    nimag2 (BigQuaternion_ _ _ _ imag2Val) = imag2Val
+
     nplus :: (Num a, Eq a) => BigNum a -> BigNum a -> BigNum a
     nplus (BigReal_ leftReal) (BigReal_ rightReal) = real $ leftReal + rightReal
     nplus (BigReal_ leftReal) (BigComplex_ rightReal rightImag0) = complex (leftReal + rightReal) rightImag0
@@ -81,3 +102,8 @@ module BigNum (
     nnegate (BigReal_ realVal) = real $ -realVal
     nnegate (BigComplex_ realVal imag0Val) = complex (-realVal) (-imag0Val)
     nnegate (BigQuaternion_ realVal imag0Val imag1Val imag2Val) = quaternion (-realVal) (-imag0Val) (-imag1Val) (-imag2Val)
+
+    nconjugate :: (Num a, Eq a) => BigNum a -> BigNum a
+    nconjugate (BigReal_ realVal) = real realVal
+    nconjugate (BigComplex_ realVal imag0Val) = complex realVal (-imag0Val)
+    nconjugate (BigQuaternion_ realVal imag0Val imag1Val imag2Val) = quaternion realVal (-imag0Val) (-imag1Val) (-imag2Val)
