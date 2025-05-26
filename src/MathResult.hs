@@ -7,7 +7,7 @@ module MathResult (
     value,
     message
 ) where
-
+    
     data MathResult a = Success_ {
         value :: a
     } | Failure_ {

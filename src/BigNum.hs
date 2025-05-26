@@ -6,10 +6,18 @@ module BigNum (
     isReal,
     isComplex,
     isQuaternion,
+    nreal,
+    nimag0,
+    nimag1,
+    nimag2,
     nplus,
     nminus,
     nmult,
-    nnegate
+    ndiv,
+    nnegate,
+    nabs,
+    ndist,
+    nmid
 ) where
     import qualified MathResult as MR
 
@@ -147,3 +155,52 @@ module BigNum (
     nconjugate (BigReal_ realVal) = real realVal
     nconjugate (BigComplex_ realVal imag0Val) = complex realVal (-imag0Val)
     nconjugate (BigQuaternion_ realVal imag0Val imag1Val imag2Val) = quaternion realVal (-imag0Val) (-imag1Val) (-imag2Val)
+
+    nabs :: (Floating a, Eq a) => BigNum a -> BigNum a
+    nabs (BigReal_ realVal) = real $ abs realVal
+    nabs (BigComplex_ realVal imag0Val) = real $ sqrt (realVal * realVal + imag0Val * imag0Val)
+    nabs (BigQuaternion_ realVal imag0Val imag1Val imag2Val) = real $ sqrt (realVal * realVal + imag0Val * imag0Val + imag1Val * imag1Val + imag2Val * imag2Val)
+
+    ndist :: (Floating a, Eq a) => BigNum a -> BigNum a -> BigNum a
+    ndist (BigReal_ leftReal) (BigReal_ rightReal) = (real . abs) $ rightReal - leftReal
+    ndist (BigReal_ leftReal) (BigComplex_ rightReal rightImag0) = (real . sqrt) $ resultReal * resultReal + rightImag0 * rightImag0
+        where resultReal = rightReal - leftReal
+    ndist (BigReal_ leftReal) (BigQuaternion_ rightReal rightImag0 rightImag1 rightImag2) = (real . sqrt) $ resultReal * resultReal + rightImag0 * rightImag0 + rightImag1 * rightImag1 + rightImag2 * rightImag2
+        where resultReal = rightReal - leftReal
+    ndist (BigComplex_ leftReal leftImag0) (BigComplex_ rightReal rightImag0) = (real . sqrt) $ resultReal * resultReal + resultImag0 * resultImag0
+        where resultReal = rightReal - leftReal
+              resultImag0 = rightImag0 - leftImag0
+    ndist (BigComplex_ leftReal leftImag0) (BigQuaternion_ rightReal rightImag0 rightImag1 rightImag2) = (real . sqrt) $ resultReal * resultReal + resultImag0 * resultImag0 + rightImag1 * rightImag1 + rightImag2 * rightImag2
+        where resultReal = rightReal - leftReal
+              resultImag0 = rightImag0 - leftImag0
+    ndist (BigQuaternion_ leftReal leftImag0 leftImag1 leftImag2) (BigQuaternion_ rightReal rightImag0 rightImag1 rightImag2) = (real . sqrt) $ resultReal * resultReal + resultImag0 * rightImag0 + resultImag1 * resultImag1 + resultImag2 * resultImag2
+        where resultReal = rightReal - leftReal
+              resultImag0 = rightImag0 - leftImag0
+              resultImag1 = rightImag1 - leftImag1
+              resultImag2 = rightImag2 - leftImag2
+    ndist left right = ndist right left
+
+    nmid :: (Fractional a, Eq a) => BigNum a -> BigNum a -> BigNum a
+    nmid (BigReal_ leftReal) (BigReal_ rightReal) = real $ (leftReal + rightReal) / 2
+    nmid (BigReal_ leftReal) (BigComplex_ rightReal rightImag0) = complex resultReal resultImag0
+        where resultReal = (leftReal + rightReal) / 2
+              resultImag0 = rightImag0 / 2
+    nmid (BigReal_ leftReal) (BigQuaternion_ rightReal rightImag0 rightImag1 rightImag2) = quaternion resultReal resultImag0 resultImag1 resultImag2
+        where resultReal = (leftReal + rightReal) / 2
+              resultImag0 = rightImag0 / 2
+              resultImag1 = rightImag1 / 2
+              resultImag2 = rightImag2 / 2
+    nmid (BigComplex_ leftReal leftImag0) (BigComplex_ rightReal rightImag0) = complex resultReal resultImag0
+        where resultReal = (leftReal + rightReal) / 2
+              resultImag0 = (leftImag0 + rightImag0) / 2
+    nmid (BigComplex_ leftReal leftImag0) (BigQuaternion_ rightReal rightImag0 rightImag1 rightImag2) = quaternion resultReal resultImag0 resultImag1 resultImag2
+        where resultReal = (leftReal + rightReal) / 2
+              resultImag0 = (leftImag0 + rightImag0) / 2
+              resultImag1 = rightImag1 / 2
+              resultImag2 = rightImag2 / 2
+    nmid (BigQuaternion_ leftReal leftImag0 leftImag1 leftImag2) (BigQuaternion_ rightReal rightImag0 rightImag1 rightImag2) = quaternion resultReal resultImag0 resultImag1 resultImag2
+        where resultReal = (leftReal + rightReal) / 2
+              resultImag0 = (leftImag0 + rightImag0) / 2
+              resultImag1 = (leftImag1 + rightImag1) / 2
+              resultImag2 = (leftImag2 + rightImag2) / 2
+    nmid left right = nmid right left
