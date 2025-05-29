@@ -1,3 +1,7 @@
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# HLINT ignore "Redundant bracket" #-}
+{-# HLINT ignore "Parenthesize unary negation" #-}
+
 module BigNum (
     BigNum,
     real,
@@ -16,8 +20,17 @@ module BigNum (
     ndiv,
     nnegate,
     nabs,
+    nnorm,
     ndist,
-    nmid
+    nmid,
+    nvec,
+    nexp,
+    nsin,
+    ncos,
+    ntan,
+    nsinh,
+    ncosh,
+    ntanh
 ) where
     import qualified MathResult as MR
 
@@ -64,25 +77,25 @@ module BigNum (
     isQuaternion BigQuaternion_{} = True
     isQuaternion _ = False
 
-    nreal :: BigNum a -> a
-    nreal (BigReal_ realVal) = realVal
-    nreal (BigComplex_ realVal _) = realVal
-    nreal (BigQuaternion_ realVal _ _ _) = realVal
+    nreal :: BigNum a -> BigNum a
+    nreal (BigReal_ realVal) = real realVal
+    nreal (BigComplex_ realVal _) = real realVal
+    nreal (BigQuaternion_ realVal _ _ _) = real realVal
 
-    nimag0 :: (Num a) => BigNum a -> a
-    nimag0 BigReal_{} = 0
-    nimag0 (BigComplex_ _ imag0Val) = imag0Val
-    nimag0 (BigQuaternion_ _ imag0Val _ _) = imag0Val
+    nimag0 :: (Num a) => BigNum a -> BigNum a
+    nimag0 BigReal_{} = real 0
+    nimag0 (BigComplex_ _ imag0Val) = real imag0Val
+    nimag0 (BigQuaternion_ _ imag0Val _ _) = real imag0Val
 
-    nimag1 :: (Num a) => BigNum a -> a
-    nimag1 BigReal_{} = 0
-    nimag1 BigComplex_{} = 0
-    nimag1 (BigQuaternion_ _ _ imag1Val _) = imag1Val
+    nimag1 :: (Num a) => BigNum a -> BigNum a
+    nimag1 BigReal_{} = real 0
+    nimag1 BigComplex_{} = real 0
+    nimag1 (BigQuaternion_ _ _ imag1Val _) = real imag1Val
 
-    nimag2 :: (Num a) => BigNum a -> a
-    nimag2 BigReal_{} = 0
-    nimag2 BigComplex_{} = 0
-    nimag2 (BigQuaternion_ _ _ _ imag2Val) = imag2Val
+    nimag2 :: (Num a) => BigNum a -> BigNum a
+    nimag2 BigReal_{} = real 0
+    nimag2 BigComplex_{} = real 0
+    nimag2 (BigQuaternion_ _ _ _ imag2Val) = real imag2Val
 
     nplus :: (Num a, Eq a) => BigNum a -> BigNum a -> BigNum a
     nplus (BigReal_ leftReal) (BigReal_ rightReal) = real $ leftReal + rightReal
@@ -161,6 +174,9 @@ module BigNum (
     nabs (BigComplex_ realVal imag0Val) = real $ sqrt (realVal * realVal + imag0Val * imag0Val)
     nabs (BigQuaternion_ realVal imag0Val imag1Val imag2Val) = real $ sqrt (realVal * realVal + imag0Val * imag0Val + imag1Val * imag1Val + imag2Val * imag2Val)
 
+    nnorm :: (Floating a, Eq a) => BigNum a -> BigNum a
+    nnorm value = MR.value $ ndiv value (nabs value)
+
     ndist :: (Floating a, Eq a) => BigNum a -> BigNum a -> BigNum a
     ndist (BigReal_ leftReal) (BigReal_ rightReal) = (real . abs) $ rightReal - leftReal
     ndist (BigReal_ leftReal) (BigComplex_ rightReal rightImag0) = (real . sqrt) $ resultReal * resultReal + rightImag0 * rightImag0
@@ -204,3 +220,80 @@ module BigNum (
               resultImag1 = (leftImag1 + rightImag1) / 2
               resultImag2 = (leftImag2 + rightImag2) / 2
     nmid left right = nmid right left
+
+    nvec :: (Num a, Eq a) => BigNum a -> BigNum a
+    nvec BigReal_{} = real 0
+    nvec (BigComplex_ _ imag0Val) = complex 0 imag0Val
+    nvec (BigQuaternion_ _ imag0Val imag1Val imag2Val) = quaternion 0 imag0Val imag1Val imag2Val
+
+    nexp :: (Floating a, Eq a) => BigNum a -> BigNum a
+    nexp (BigReal_ realVal) = real $ exp realVal
+    nexp (BigComplex_ realVal imag0Val) = complex b c
+        where a = exp realVal
+              b = a * (cos imag0Val)
+              c = a * (sin imag0Val)
+    nexp value@BigQuaternion_{} = nmult a h
+        where a = nexp $ nreal value
+              b = nvec value
+              c = nabs b
+              d = ncos c
+              e = nsin c
+              f = nnorm value
+              g = nmult f e
+              h = nplus d g
+
+
+    nsin :: (Floating a, Eq a) => BigNum a -> BigNum a
+    nsin (BigReal_ realVal) = real $ sin realVal
+    nsin (BigComplex_ realVal imag0Val) = complex resultReal resultImag0
+        where resultReal = (sin realVal) * (cosh imag0Val)
+              resultImag0 = (cos realVal) * (sinh imag0Val)
+    nsin value@BigQuaternion_{} = nplus a c
+        where realVal = nreal value
+              vectorPart = nvec value
+              absValue = nabs vectorPart
+              a = nmult (nsin realVal) (ncosh absValue)
+              b = nmult (ncos realVal) (nsinh absValue)
+              c = nmult b (nnorm vectorPart)
+
+    ncos :: (Floating a, Eq a) => BigNum a -> BigNum a
+    ncos (BigReal_ realVal) = real $ cos realVal
+    ncos (BigComplex_ realVal imag0Val) = complex resultReal resultImag0
+        where resultReal = (cos realVal) * (cosh imag0Val)
+              resultImag0 = -(sin realVal) * (sinh imag0Val)
+    ncos value@BigQuaternion_{} = nplus a c
+        where realVal = nreal value
+              vectorPart = nvec value
+              absValue = nabs vectorPart
+              a = nmult (ncos realVal) (ncosh absValue)
+              b = nmult (nsin realVal) (nsinh absValue)
+              c = nmult b (nnorm vectorPart)
+
+    ntan :: (Floating a, Eq a) => BigNum a -> MR.MathResult (BigNum a)
+    ntan value = ndiv (nsin value) (ncos value)
+
+    nsinh :: (Floating a, Eq a) => BigNum a -> BigNum a
+    nsinh (BigReal_ realVal) = real $ sinh realVal
+    nsinh value@BigComplex_{} = nmult b c
+        where a = complex 0 1
+              b = nnegate a
+              c = nmult a value
+    nsinh value@BigQuaternion_{} = MR.value $ ndiv d (real 2)
+        where a = nnegate value
+              b = nexp value
+              c = nexp a
+              d = nminus b c
+
+    ncosh :: (Floating a, Eq a) => BigNum a -> BigNum a
+    ncosh (BigReal_ realVal) = real $ cosh realVal
+    ncosh value@BigComplex_{} = ncos b
+        where a = complex 0 1
+              b = nmult a value
+    ncosh value@BigQuaternion_{} = MR.value $ ndiv d (real 2)
+        where a = nnegate value
+              b = nexp value
+              c = nexp a
+              d = nplus b c
+
+    ntanh :: (Floating a, Eq a) => BigNum a -> MR.MathResult (BigNum a)
+    ntanh value = ndiv (nsinh value) (ncosh value)
